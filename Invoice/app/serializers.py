@@ -1,39 +1,3 @@
-# from rest_framework import serializers
-# from .models import *
-
-# class ClientSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Client
-#         fields = '__all__'
-#         read_only_fields = ['user']
-
-# class InvoiceItemSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = InvoiceItem
-#         fields = '__all__'
-#         read_only_fields = ['amount']
-
-# class PaymentSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Payment
-#         fields = '__all__'
-
-# class InvoiceSerializer(serializers.ModelSerializer):
-#     amount_paid = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-#     balance = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-
-#     class Meta:
-#         model = Invoice
-#         fields = '__all__'
-#         read_only_fields = ['user', 'amount_paid', 'balance']
-
-# class BusinessProfileSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = BusinessProfile
-#         fields = '__all__'
-#         read_only_fields = ['user']
-
-# # <-------------------------------------------------------------------->>>
 
 from rest_framework import serializers
 from .models import *
@@ -56,6 +20,7 @@ class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
         fields = '__all__'
+        read_only_fields = ['user']
 
 # class InvoiceSerializer(serializers.ModelSerializer):
 #     amount_paid = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
@@ -105,7 +70,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invoice
         fields = '__all__'
-        read_only_fields = ['user', 'invoice_number', 'amount_paid', 'balance', 'payment_status']
+        read_only_fields = ['user', 'invoice_number', 'amount_paid', 'balance', 'payment_status', 'created_at']
 
     def validate(self, data):
         issue_date = data.get('issue_date')

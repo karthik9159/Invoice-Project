@@ -35,6 +35,6 @@ class PaymentAdmin(admin.ModelAdmin):
 
 @admin.register(BusinessProfile)
 class BusinessProfileAdmin(admin.ModelAdmin):
-    list_display = ('business_name', 'user', 'tax_id', 'currency', 'email', 'phone', 'website', 'address')
+    list_display = ('business_name', 'user', 'tax_id',  'email', 'phone', 'website', 'address')
     search_fields = ('business_name', 'tax_id')
 

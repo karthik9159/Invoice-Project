@@ -8,6 +8,7 @@ import Payments from "./pages/Payments";
 import Profile from "./pages/Profile";
 import PrivateRoute from "./components/PrivateRoute";
 import "./index.css"; 
+
 function App() {
   return (
     <BrowserRouter>

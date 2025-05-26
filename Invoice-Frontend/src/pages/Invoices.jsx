@@ -603,7 +603,7 @@
 
 //<<<-------------------------------------------------------------->>>
 
-// Working code-------------------------------------------->>>>
+// <<<--------------Working code-------------------------------------------->>>>
 
 import { useEffect, useState } from "react";
 import { Plus, FileText, Calendar, DollarSign, User, Edit, Trash2, Save, X, Hash, Receipt, Clock, Building, CheckCircle, AlertCircle, XCircle, CreditCard, Eye } from "lucide-react";
@@ -643,10 +643,22 @@ export default function Invoices() {
     setIsLoading(true);
     try {
       const res = await axios.get("api/invoices/");
-      setInvoices(res.data);
-      console.log("Fetched invoices:", res.data);
+      // Add validation and logging
+      console.log("Raw API response:", res);
+      console.log("Response data:", res.data);
+      
+      // Ensure we have an array
+      const invoiceData = Array.isArray(res.data) ? res.data : 
+                         res.data?.results ? res.data.results : 
+                         res.data?.data ? res.data.data : [];
+      
+      setInvoices(invoiceData);
+      console.log("Set invoices state:", invoiceData);
     } catch (error) {
       console.error("Error fetching invoices:", error);
+      console.error("Error response:", error.response);
+      // Set empty array on error to prevent crashes
+      setInvoices([]);
     } finally {
       setIsLoading(false);
     }
@@ -655,37 +667,25 @@ export default function Invoices() {
   const fetchClients = async () => {
     try {
       const res = await axios.get("api/clients/");
-      setClients(res.data);
       console.log("Fetched clients:", res.data);
+      
+      // Ensure we have an array for clients too
+      const clientData = Array.isArray(res.data) ? res.data : 
+                        res.data?.results ? res.data.results : 
+                        res.data?.data ? res.data.data : [];
+      
+      setClients(clientData);
     } catch (error) {
       console.error("Error fetching clients:", error);
+      setClients([]);
     }
   };
 
   const generateInvoiceNumber = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
-    
-    // Filter invoices from current year and month
-    const currentMonthInvoices = invoices.filter(invoice => {
-      if (!invoice.invoice_number) return false;
-      return invoice.invoice_number.includes(`${currentYear}-${currentMonth}`);
-    });
-    
-    // Get the highest invoice number for this month
-    let maxNumber = 0;
-    currentMonthInvoices.forEach(invoice => {
-      const parts = invoice.invoice_number?.split('-') || [];
-      if (parts.length === 4) {
-        const num = parseInt(parts[3]);
-        if (!isNaN(num) && num > maxNumber) {
-          maxNumber = num;
-        }
-      }
-    });
-    
-    const nextNumber = String(maxNumber + 1).padStart(3, '0');
-    return `INV-${currentYear}-${currentMonth}-${nextNumber}`;
+    const prefix = "INV-";
+    const timestamp = Date.now().toString().slice(-4);
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    return prefix + timestamp + randomNum;
   };
 
   const handleLineItemChange = (index, e) => {
@@ -756,22 +756,36 @@ export default function Invoices() {
         client_id: form.client,
         line_items_data: form.line_items.map(item => ({
           description: item.description,
-          quantity: item.quantity,
-          rate: item.rate,
-          amount: item.amount
+          quantity: parseFloat(item.quantity) || 0,
+          rate: parseFloat(item.rate) || 0,
+          amount: parseFloat(item.amount) || 0
         }))
       };
       
+      console.log("Submitting payload:", payload);
+      
+      let response;
       if (editingId) {
-        await axios.put(`api/invoices/${editingId}/`, payload);
+        response = await axios.put(`api/invoices/${editingId}/`, payload);
       } else {
-        await axios.post("api/invoices/", payload);
+        response = await axios.post("api/invoices/", payload);
       }
       
+      console.log("Submit response:", response.data);
+      
+      // Update form with returned invoice number if available
+      if (response.data && response.data.invoice_number) {
+        setForm(prev => ({
+          ...prev,
+          invoice_number: response.data.invoice_number,
+        }));
+      }
+
       resetForm();
-      fetchInvoices();
+      await fetchInvoices(); // Wait for fetch to complete
     } catch (error) {
       console.error("Error saving invoice:", error);
+      console.error("Error response:", error.response);
     } finally {
       setIsLoading(false);
     }
@@ -780,7 +794,7 @@ export default function Invoices() {
   const resetForm = () => {
     setForm({
       client: "",
-      invoice_number: "",
+      invoice_number: generateInvoiceNumber(),
       issue_date: "",
       due_date: "",
       subtotal: "",
@@ -800,17 +814,19 @@ export default function Invoices() {
       const res = await axios.get(`api/invoices/${id}/`);
       const invoiceData = res.data;
       
+      console.log("Edit invoice data:", invoiceData);
+      
       setForm({
-        client: invoiceData.client_id || invoiceData.client,
-        invoice_number: invoiceData.invoice_number,
-        issue_date: invoiceData.issue_date,
-        due_date: invoiceData.due_date,
-        subtotal: invoiceData.subtotal,
-        total: invoiceData.total,
-        notes: invoiceData.notes,
-        payment_status: invoiceData.payment_status,
-        paid_amount: invoiceData.paid_amount,
-        balance: invoiceData.balance,
+        client: invoiceData.client_id || invoiceData.client || "",
+        invoice_number: invoiceData.invoice_number || "",
+        issue_date: invoiceData.issue_date || "",
+        due_date: invoiceData.due_date || "",
+        subtotal: invoiceData.subtotal || "",
+        total: invoiceData.total || "",
+        notes: invoiceData.notes || "",
+        payment_status: invoiceData.payment_status || "pending",
+        paid_amount: invoiceData.paid_amount || "0.00",
+        balance: invoiceData.balance || "",
         line_items: invoiceData.line_items_data || invoiceData.line_items || 
                    [{ description: "", quantity: "", rate: "", amount: "" }]
       });
@@ -826,7 +842,7 @@ export default function Invoices() {
     if (window.confirm("Are you sure you want to delete this invoice?")) {
       try {
         await axios.delete(`api/invoices/${id}/`);
-        fetchInvoices();
+        await fetchInvoices(); // Refresh the list
       } catch (error) {
         console.error("Error deleting invoice:", error);
       }
@@ -835,11 +851,6 @@ export default function Invoices() {
 
   const handleNewInvoice = () => {
     resetForm();
-    const newInvoiceNumber = generateInvoiceNumber();
-    setForm(prev => ({
-      ...prev,
-      invoice_number: newInvoiceNumber
-    }));
     setShowForm(true);
   };
 
@@ -859,9 +870,12 @@ export default function Invoices() {
     try {
       // Implement your payment submission logic here
       console.log("Submitting payment:", paymentForm);
-      // After successful payment submission
+      
+      // Example API call for payment
+      await axios.post(`api/invoices/${selectedInvoice.id}/payments/`, paymentForm);
+      
       setShowPaymentModal(false);
-      fetchInvoices();
+      await fetchInvoices(); // Refresh invoices after payment
     } catch (error) {
       console.error("Error submitting payment:", error);
     } finally {
@@ -894,7 +908,8 @@ export default function Invoices() {
     };
     
     // Determine status based on balance if status is not explicitly set
-    const effectiveStatus = parseFloat(balance) <= 0 ? 'paid' : status;
+    const numericBalance = parseFloat(balance) || 0;
+    const effectiveStatus = numericBalance <= 0 ? 'paid' : (status || 'pending');
     
     const badge = statusMap[effectiveStatus] || statusMap.pending;
     
@@ -906,17 +921,26 @@ export default function Invoices() {
     );
   };
 
+  // Initialize component
   useEffect(() => {
+    console.log("Component mounting, fetching data...");
     fetchInvoices();
     fetchClients();
   }, []);
+
+  // Debug log for invoices state changes
+  useEffect(() => {
+    console.log("Invoices state updated:", invoices);
+    console.log("Invoices array length:", invoices.length);
+    console.log("Is loading:", isLoading);
+  }, [invoices, isLoading]);
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Navbar />
-        <main className="flex-1 p-6 space-y-6">
+       <main className="flex-1 p-6 space-y-6">
           {/* Header Section */}
           <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
             <div className="flex justify-between items-center">
@@ -924,6 +948,7 @@ export default function Invoices() {
                 <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl">
                   <Receipt className="w-8 h-8 text-white" />
                 </div>
+        
                 <div>
                   <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                     Invoice Management
@@ -931,6 +956,7 @@ export default function Invoices() {
                   <p className="text-gray-600 mt-1">Create and manage professional invoices</p>
                 </div>
               </div>
+           
               <button
                 onClick={handleNewInvoice}
                 className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
@@ -943,7 +969,8 @@ export default function Invoices() {
               </button>
             </div>
           </div>
-
+       
+          
           {/* Invoice Form */}
           {showForm && (
             <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
@@ -960,7 +987,7 @@ export default function Invoices() {
                 </button>
               </div>
 
-              <div className="space-y-8">
+              <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Basic Information */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -1148,8 +1175,7 @@ export default function Invoices() {
                     Cancel
                   </button>
                   <button
-                    type="button"
-                    onClick={handleSubmit}
+                    type="submit"
                     disabled={isLoading}
                     className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                   >
@@ -1157,7 +1183,7 @@ export default function Invoices() {
                     <span>{isLoading ? "Saving..." : editingId ? "Update Invoice" : "Create Invoice"}</span>
                   </button>
                 </div>
-              </div>
+              </form>
             </div>
           )}
 
@@ -1168,12 +1194,12 @@ export default function Invoices() {
               <span>Invoice List</span>
             </h2>
             
-            {isLoading && invoices.length === 0 ? (
+            {isLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
                 <p className="text-gray-500 mt-4">Loading invoices...</p>
               </div>
-            ) : invoices.length === 0 ? (
+            ) : !Array.isArray(invoices) || invoices.length === 0 ? (
               <div className="text-center py-12">
                 <Receipt className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500 text-lg">No invoices found</p>
@@ -1184,7 +1210,7 @@ export default function Invoices() {
                 <table className="w-full">
                   <thead className="bg-gradient-to-r from-gray-50 to-blue-50">
                     <tr>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Invoice #</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Invoice Number</th>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Client</th>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Issue Date</th>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Total</th>
@@ -1196,22 +1222,24 @@ export default function Invoices() {
                   <tbody className="divide-y divide-gray-200">
                     {invoices.map(invoice => (
                       <tr key={invoice.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 font-mono text-sm text-blue-600">{invoice.invoice_number}</td>
+                        <td className="px-6 py-4 font-mono text-sm text-blue-600">
+                          {invoice.invoice_number || 'N/A'}
+                        </td>
                         <td className="px-6 py-4 text-gray-900">
-                          {invoice.client?.name || invoice.client_name || `Client ${invoice.client_id}`}
+                          {invoice.client?.name || invoice.client_name || `Client ${invoice.client_id}` || 'Unknown Client'}
                         </td>
                         <td className="px-6 py-4 text-gray-600">
-                          {new Date(invoice.issue_date).toLocaleDateString()}
+                          {invoice.issue_date ? new Date(invoice.issue_date).toLocaleDateString() : 'N/A'}
                         </td>
-                        <td className="px-6 py-4 font-semibold text-gray-900">₹{invoice.total}</td>
+                        <td className="px-6 py-4 font-semibold text-gray-900">₹{invoice.total || '0.00'}</td>
                         <td className="px-6 py-4">
                           {getStatusBadge(invoice.payment_status, invoice.balance)}
                         </td>
                         <td className="px-6 py-4">
                           <span className={`font-semibold ${
-                            parseFloat(invoice.balance) > 0 ? 'text-red-600' : 'text-green-600'
+                            parseFloat(invoice.balance || invoice.total || 0) > 0 ? 'text-red-600' : 'text-green-600'
                           }`}>
-                            ₹{invoice.balance || invoice.total}
+                            ₹{invoice.balance || invoice.total || '0.00'}
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -1223,7 +1251,7 @@ export default function Invoices() {
                             >
                               <Edit className="w-4 h-4" />
                             </button>
-                            {parseFloat(invoice.balance || invoice.total) > 0 && (
+                            {parseFloat(invoice.balance || invoice.total || 0) > 0 && (
                               <button
                                 onClick={() => handleAddPayment(invoice)}
                                 className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
@@ -1346,460 +1374,4 @@ export default function Invoices() {
 }
 
 
-//<<<<-------------------------------------------------------------------->>>>
-//<<<<-------------------------------------------------------------------->>>>
 
-// import { useEffect, useState } from "react";
-// import axios from "../api/axios";
-// import Navbar from "../components/Navbar";
-// import Sidebar from "../components/Sidebar";
-
-// export default function Invoices() {
-//   const [invoices, setInvoices] = useState([]);
-//   const [clients, setClients] = useState([]);
-//   const [form, setForm] = useState({
-//     client: "",
-//     invoice_number: "",
-//     issue_date: "",
-//     due_date: "",
-//     subtotal: "0.00",
-//     total: "0.00",
-//     notes: "",
-//     line_items: [{ description: "", quantity: "", rate: "", amount: "0.00" }]
-//   });
-//   const [isLoading, setIsLoading] = useState(false);
-//   const [showForm, setShowForm] = useState(false);
-//   const [isGeneratingNumber, setIsGeneratingNumber] = useState(false);
-
-//   const fetchInvoices = async () => {
-//     setIsLoading(true);
-//     try {
-//       const res = await axios.get("api/invoices/");
-//       setInvoices(res.data);
-//     } catch (error) {
-//       console.error("Error fetching invoices:", error);
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
-
-//   const fetchClients = async () => {
-//     try {
-//       const res = await axios.get("api/clients/");
-//       setClients(res.data);
-//     } catch (error) {
-//       console.error("Error fetching clients:", error);
-//     }
-//   };
-
-//   const generateInvoiceNumber = () => {
-//     try {
-//       // If no invoices exist yet
-//       if (!invoices || invoices.length === 0) {
-//         return "INV-001";
-//       }
-
-//       // Extract and parse all invoice numbers
-//       const numbers = invoices
-//         .map(inv => inv.invoice_number)
-//         .filter(num => num && typeof num === 'string')
-//         .map(num => {
-//           // Handle both "INV-001" and "INV001" formats
-//           const match = num.match(/INV-?(\d+)/i);
-//           return match ? parseInt(match[1], 10) : 0;
-//         });
-
-//       const maxNumber = numbers.length > 0 ? Math.max(...numbers) : 0;
-//       return `INV-${(maxNumber + 1).toString().padStart(3, '0')}`;
-//     } catch (error) {
-//       console.error("Error generating invoice number:", error);
-//       return "INV-001"; // Fallback
-//     }
-//   };
-
-//   const handleLineItemChange = (index, e) => {
-//     const { name, value } = e.target;
-//     const lineItems = [...form.line_items];
-//     lineItems[index][name] = value;
-
-//     if (name === "quantity" || name === "rate") {
-//       const quantity = parseFloat(lineItems[index].quantity) || 0;
-//       const rate = parseFloat(lineItems[index].rate) || 0;
-//       lineItems[index].amount = (quantity * rate).toFixed(2);
-//     }
-
-//     setForm({ ...form, line_items: lineItems });
-//   };
-
-//   const addLineItem = () => {
-//     setForm({
-//       ...form,
-//       line_items: [...form.line_items, { description: "", quantity: "", rate: "", amount: "0.00" }]
-//     });
-//   };
-
-//   const removeLineItem = (index) => {
-//     const lineItems = [...form.line_items];
-//     lineItems.splice(index, 1);
-//     setForm({ ...form, line_items: lineItems });
-//   };
-
-//   const calculateTotals = () => {
-//     const subtotal = form.line_items.reduce((sum, item) => {
-//       return sum + (parseFloat(item.amount) || 0);
-//     }, 0);
-//     setForm(prev => ({
-//       ...prev,
-//       subtotal: subtotal.toFixed(2),
-//       total: subtotal.toFixed(2)
-//     }));
-//   };
-
-//   const resetForm = () => {
-//     setForm({
-//       client: "",
-//       invoice_number: "",
-//       issue_date: "",
-//       due_date: "",
-//       subtotal: "0.00",
-//       total: "0.00",
-//       notes: "",
-//       line_items: [{ description: "", quantity: "", rate: "", amount: "0.00" }]
-//     });
-//   };
-
-//   const handleCreate = async (e) => {
-//     e.preventDefault();
-//     setIsLoading(true);
-//     try {
-//       const payload = {
-//         ...form,
-//         client_id: form.client,
-//         line_items_data: form.line_items.map(item => ({
-//           description: item.description,
-//           quantity: parseFloat(item.quantity) || 0,
-//           rate: parseFloat(item.rate) || 0,
-//           amount: parseFloat(item.amount) || 0
-//         }))
-//       };
-//       await axios.post("api/invoices/", payload);
-//       resetForm();
-//       setShowForm(false);
-//       fetchInvoices();
-//     } catch (error) {
-//       console.error("Error creating invoice:", error);
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
-
-//   const handleEdit = async (id) => {
-//     if (window.confirm("Edit this invoice?")) {
-//       setIsLoading(true);
-//       try {
-//         const res = await axios.get(`api/invoices/${id}/`);
-//         const invoiceData = res.data;
-//         const lineItems = invoiceData.line_items_data.map(item => ({
-//           description: item.description,
-//           quantity: item.quantity.toString(),
-//           rate: item.rate.toString(),
-//           amount: item.amount.toFixed(2)
-//         }));
-//         setForm({
-//           ...invoiceData,
-//           client: invoiceData.client_id,
-//           line_items: lineItems.length ? lineItems : [{ description: "", quantity: "", rate: "", amount: "0.00" }],
-//           subtotal: invoiceData.subtotal.toFixed(2),
-//           total: invoiceData.total.toFixed(2)
-//         });
-//         setShowForm(true);
-//       } catch (error) {
-//         console.error("Error fetching invoice:", error);
-//       } finally {
-//         setIsLoading(false);
-//       }
-//     }
-//   };
-
-//   const handleDelete = async (id) => {
-//     if (window.confirm("Delete this invoice?")) {
-//       try {
-//         await axios.delete(`api/invoices/${id}/`);
-//         fetchInvoices();
-//       } catch (error) {
-//         console.error("Error deleting invoice:", error);
-//       }
-//     }
-//   };
-
-//   useEffect(() => {
-//     fetchInvoices();
-//     fetchClients();
-//   }, []);
-
-//   useEffect(() => {
-//     calculateTotals();
-//   }, [form.line_items]);
-
-//   useEffect(() => {
-//     if (showForm) {
-//       setIsGeneratingNumber(true);
-//       const generatedNumber = generateInvoiceNumber();
-//       setForm(prev => ({
-//         ...prev,
-//         invoice_number: generatedNumber,
-//         issue_date: new Date().toISOString().split('T')[0] // Set default issue date to today
-//       }));
-//       setIsGeneratingNumber(false);
-//     }
-//   }, [showForm, invoices]);
-
-//   return (
-//     <div className="flex min-h-screen bg-gray-50">
-//       <Sidebar />
-//       <div className="flex-1 flex flex-col">
-//         <Navbar />
-//         <main className="flex-1 p-8">
-//           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-8">
-//             <div className="flex justify-between items-center">
-//               <h1 className="text-3xl font-bold text-gray-900">Invoices</h1>
-//               <button
-//                 onClick={() => {
-//                   resetForm();
-//                   setShowForm(!showForm);
-//                 }}
-//                 className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-xl disabled:opacity-50"
-//                 disabled={isLoading}
-//               >
-//                 {isLoading ? "Loading..." : "+ New Invoice"}
-//               </button>
-//             </div>
-//           </div>
-
-//           {showForm && (
-//             <form onSubmit={handleCreate} className="bg-white border p-6 rounded-xl mb-8">
-//               {isGeneratingNumber ? (
-//                 <div className="text-center py-4">Preparing invoice form...</div>
-//               ) : (
-//                 <>
-//                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-//                     <div>
-//                       <label className="block text-sm font-medium text-gray-700 mb-1">Client</label>
-//                       <select
-//                         name="client"
-//                         value={form.client}
-//                         onChange={(e) => setForm({ ...form, client: e.target.value })}
-//                         className="w-full border px-4 py-2 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
-//                         required
-//                         disabled={isLoading}
-//                       >
-//                         <option value="">Select a client</option>
-//                         {clients.map(client => (
-//                           <option key={client.id} value={client.id}>
-//                             {client.name}
-//                           </option>
-//                         ))}
-//                       </select>
-//                     </div>
-//                     <div>
-//                       <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
-//                       <input
-//                         type="text"
-//                         value={form.invoice_number}
-//                         readOnly
-//                         className="w-full border px-4 py-2 rounded bg-gray-50"
-//                       />
-//                     </div>
-//                     <div>
-//                       <label className="block text-sm font-medium text-gray-700 mb-1">Issue Date</label>
-//                       <input
-//                         type="date"
-//                         value={form.issue_date}
-//                         onChange={(e) => setForm({ ...form, issue_date: e.target.value })}
-//                         className="w-full border px-4 py-2 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
-//                         required
-//                         disabled={isLoading}
-//                       />
-//                     </div>
-//                     <div>
-//                       <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-//                       <input
-//                         type="date"
-//                         value={form.due_date}
-//                         onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-//                         className="w-full border px-4 py-2 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
-//                         required
-//                         disabled={isLoading}
-//                       />
-//                     </div>
-//                   </div>
-
-//                   <div className="mb-4">
-//                     <label className="block text-sm font-medium text-gray-700 mb-2">Line Items</label>
-//                     {form.line_items.map((item, index) => (
-//                       <div key={index} className="grid grid-cols-12 gap-2 mb-3 items-center">
-//                         <div className="col-span-5">
-//                           <input
-//                             type="text"
-//                             name="description"
-//                             placeholder="Description"
-//                             value={item.description}
-//                             onChange={(e) => handleLineItemChange(index, e)}
-//                             className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
-//                             disabled={isLoading}
-//                           />
-//                         </div>
-//                         <div className="col-span-2">
-//                           <input
-//                             type="number"
-//                             name="quantity"
-//                             placeholder="Qty"
-//                             value={item.quantity}
-//                             onChange={(e) => handleLineItemChange(index, e)}
-//                             min="0"
-//                             step="1"
-//                             className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
-//                             disabled={isLoading}
-//                           />
-//                         </div>
-//                         <div className="col-span-2">
-//                           <input
-//                             type="number"
-//                             name="rate"
-//                             placeholder="Rate"
-//                             value={item.rate}
-//                             onChange={(e) => handleLineItemChange(index, e)}
-//                             min="0"
-//                             step="0.01"
-//                             className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
-//                             disabled={isLoading}
-//                           />
-//                         </div>
-//                         <div className="col-span-2">
-//                           <input
-//                             type="text"
-//                             value={item.amount}
-//                             readOnly
-//                             className="w-full border px-3 py-2 rounded bg-gray-50"
-//                           />
-//                         </div>
-//                         <div className="col-span-1">
-//                           {index > 0 && (
-//                             <button
-//                               type="button"
-//                               onClick={() => removeLineItem(index)}
-//                               className="text-red-500 hover:text-red-700 disabled:opacity-50"
-//                               disabled={isLoading}
-//                             >
-//                               ×
-//                             </button>
-//                           )}
-//                         </div>
-//                       </div>
-//                     ))}
-//                     <button
-//                       type="button"
-//                       onClick={addLineItem}
-//                       className="mt-2 text-sm text-blue-600 hover:underline disabled:opacity-50"
-//                       disabled={isLoading}
-//                     >
-//                       + Add Item
-//                     </button>
-//                   </div>
-
-//                   <div className="mb-4">
-//                     <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-//                     <textarea
-//                       value={form.notes}
-//                       onChange={(e) => setForm({ ...form, notes: e.target.value })}
-//                       className="w-full border px-4 py-2 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
-//                       rows="3"
-//                       disabled={isLoading}
-//                     />
-//                   </div>
-
-//                   <div className="flex justify-between mb-4 p-3 bg-gray-50 rounded">
-//                     <div className="font-medium">Subtotal: ₹{form.subtotal}</div>
-//                     <div className="font-bold">Total: ₹{form.total}</div>
-//                   </div>
-
-//                   <div className="flex justify-end space-x-3">
-//                     <button
-//                       type="button"
-//                       onClick={() => setShowForm(false)}
-//                       className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
-//                       disabled={isLoading}
-//                     >
-//                       Cancel
-//                     </button>
-//                     <button
-//                       type="submit"
-//                       className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 disabled:opacity-50"
-//                       disabled={isLoading}
-//                     >
-//                       {isLoading ? "Saving..." : "Save Invoice"}
-//                     </button>
-//                   </div>
-//                 </>
-//               )}
-//             </form>
-//           )}
-
-//           {/* Invoice list */}
-//           <div className="bg-white p-6 rounded-xl shadow">
-//             <h2 className="text-xl font-bold mb-4">Invoice List</h2>
-//             {isLoading && invoices.length === 0 ? (
-//               <div className="text-center py-8">Loading invoices...</div>
-//             ) : invoices.length === 0 ? (
-//               <p className="text-gray-500">No invoices found.</p>
-//             ) : (
-//               <div className="overflow-x-auto">
-//                 <table className="w-full table-auto border">
-//                   <thead>
-//                     <tr className="bg-gray-100 text-left">
-//                       <th className="p-3 border">Invoice #</th>
-//                       <th className="p-3 border">Client</th>
-//                       <th className="p-3 border">Issue Date</th>
-//                       <th className="p-3 border">Due Date</th>
-//                       <th className="p-3 border text-right">Total</th>
-//                       <th className="p-3 border">Actions</th>
-//                     </tr>
-//                   </thead>
-//                   <tbody>
-//                     {invoices.map(inv => (
-//                       <tr key={inv.id} className="border-t hover:bg-gray-50">
-//                         <td className="p-3 border font-medium">{inv.invoice_number}</td>
-//                         <td className="p-3 border">{inv.client_name || inv.client}</td>
-//                         <td className="p-3 border">{new Date(inv.issue_date).toLocaleDateString()}</td>
-//                         <td className="p-3 border">{new Date(inv.due_date).toLocaleDateString()}</td>
-//                         <td className="p-3 border text-right">₹{parseFloat(inv.total).toFixed(2)}</td>
-//                         <td className="p-3 border">
-//                           <div className="flex space-x-2">
-//                             <button 
-//                               onClick={() => handleEdit(inv.id)} 
-//                               className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
-//                               disabled={isLoading}
-//                             >
-//                               Edit
-//                             </button>
-//                             <button 
-//                               onClick={() => handleDelete(inv.id)} 
-//                               className="text-red-600 hover:text-red-800 disabled:opacity-50"
-//                               disabled={isLoading}
-//                             >
-//                               Delete
-//                             </button>
-//                           </div>
-//                         </td>
-//                       </tr>
-//                     ))}
-//                   </tbody>
-//                 </table>
-//               </div>
-//             )}
-//           </div>
-//         </main>
-//       </div>
-//     </div>
-//   );
-// }

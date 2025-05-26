@@ -60,16 +60,6 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-    # @action(detail=True, methods=['get'], url_path='download-pdf')
-    # def download_pdf(self, request, pk=None):
-    #     invoice = get_object_or_404(Invoice, pk=pk, user=request.user)
-    #     # pdf = render_to_pdf('invoice_pdf.html', {'invoice': invoice})
-    #     if pdf:
-    #         filename = f"invoice_{invoice.invoice_number}.pdf"
-    #         response = HttpResponse(pdf.content, content_type='application/pdf')
-    #         response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    #         return response
-    #     return Response({'error': 'PDF generation failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['get'])
     def summary(self, request):
@@ -82,7 +72,136 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         }
         return Response(stats)
 
+#####---------------------------------------------------------######
 
+
+# from rest_framework import viewsets, status
+# from rest_framework.permissions import IsAuthenticated
+# from rest_framework.decorators import action
+# from rest_framework.response import Response
+# from django.shortcuts import get_object_or_404
+# from django_filters.rest_framework import DjangoFilterBackend
+# from rest_framework.filters import SearchFilter, OrderingFilter
+# from rest_framework.permissions import IsAuthenticated
+# from rest_framework.exceptions import PermissionDenied
+# from rest_framework import permissions
+
+# from .models import *
+# from .serializers import *
+
+
+# class ClientViewSet(viewsets.ModelViewSet):
+#     serializer_class = ClientSerializer
+#     permission_classes = [IsAuthenticated]
+#     filter_backends = [DjangoFilterBackend, SearchFilter]
+#     filterset_fields = ['name', 'address', 'email']
+#     search_fields = ['name', 'address']
+
+#     def get_queryset(self):
+#         return Client.objects.filter(user=self.request.user, is_deleted=False)
+
+#     def perform_create(self, serializer):
+#         serializer.save(user=self.request.user)
+
+#     @action(detail=False, methods=['get'])
+#     def deleted(self, request):
+#         """View soft-deleted clients"""
+#         queryset = Client.all_objects.filter(user=request.user, is_deleted=True)
+#         serializer = self.get_serializer(queryset, many=True)
+#         return Response(serializer.data)
+
+#     @action(detail=True, methods=['post'])
+#     def restore(self, request, pk=None):
+#         """Restore a soft-deleted client"""
+#         client = get_object_or_404(Client.all_objects, pk=pk, user=request.user, is_deleted=True)
+#         client.is_deleted = False
+#         client.save()
+#         return Response({'status': 'restored'})
+
+#     @action(detail=True, methods=['delete'])
+#     def hard_delete(self, request, pk=None):
+#         """Permanently delete a client"""
+#         client = get_object_or_404(Client.all_objects, pk=pk, user=request.user)
+#         client.delete()
+#         return Response({'status': 'hard_deleted'}, status=status.HTTP_204_NO_CONTENT)
+
+#     def destroy(self, request, *args, **kwargs):
+#         """Soft delete instead of actual deletion"""
+#         instance = self.get_object()
+#         instance.is_deleted = True
+#         instance.save()
+#         return Response({'status': 'soft_deleted'}, status=status.HTTP_204_NO_CONTENT)
+
+
+# class InvoiceViewSet(viewsets.ModelViewSet):
+#     serializer_class = InvoiceSerializer
+#     permission_classes = [IsAuthenticated]
+#     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+#     filterset_fields = {
+#         'invoice_number': ['exact', 'icontains'],
+#         'issue_date': ['gte', 'lte', 'exact'],
+#         'payment_status': ['exact'],
+#         'client': ['exact'],
+#     }
+#     search_fields = ['invoice_number', 'client__name', 'notes']
+#     ordering_fields = ['issue_date', 'due_date', 'total']
+#     ordering = ['-issue_date']
+
+#     def get_queryset(self):
+#         queryset = Invoice.objects.filter(user=self.request.user, is_deleted=False)
+#         queryset = queryset.select_related('client').prefetch_related('items')
+
+#         status_filter = self.request.query_params.get('status', None)
+#         if status_filter in ['paid', 'partial', 'unpaid']:
+#             queryset = queryset.filter(payment_status=status_filter)
+
+#         return queryset
+
+#     def perform_create(self, serializer):
+#         serializer.save(user=self.request.user)
+
+#     def destroy(self, request, *args, **kwargs):
+#         """Soft delete invoice"""
+#         instance = self.get_object()
+#         instance.is_deleted = True
+#         instance.save()
+#         return Response({'status': 'soft_deleted'}, status=status.HTTP_204_NO_CONTENT)
+
+#     @action(detail=False, methods=['get'])
+#     def deleted(self, request):
+#         """View deleted invoices"""
+#         queryset = Invoice.all_objects.filter(user=request.user, is_deleted=True)
+#         serializer = self.get_serializer(queryset, many=True)
+#         return Response(serializer.data)
+
+#     @action(detail=True, methods=['post'])
+#     def restore(self, request, pk=None):
+#         """Restore a soft-deleted invoice"""
+#         invoice = get_object_or_404(Invoice.all_objects, pk=pk, user=request.user, is_deleted=True)
+#         invoice.is_deleted = False
+#         invoice.save()
+#         return Response({'status': 'restored'})
+
+#     @action(detail=True, methods=['delete'])
+#     def hard_delete(self, request, pk=None):
+#         """Permanently delete invoice"""
+#         invoice = get_object_or_404(Invoice.all_objects, pk=pk, user=request.user)
+#         invoice.delete()
+#         return Response({'status': 'hard_deleted'}, status=status.HTTP_204_NO_CONTENT)
+
+#     @action(detail=False, methods=['get'])
+#     def summary(self, request):
+#         queryset = self.get_queryset()
+#         stats = {
+#             'total_invoices': queryset.count(),
+#             'total_amount': sum(invoice.total for invoice in queryset),
+#             'paid_amount': sum(invoice.amount_paid for invoice in queryset),
+#             'outstanding_amount': sum(invoice.balance for invoice in queryset),
+#         }
+#         return Response(stats)
+
+
+######---------------------------------------------------------#######
 
 class InvoiceItemViewSet(viewsets.ModelViewSet):
     serializer_class = InvoiceItemSerializer
@@ -124,7 +243,15 @@ class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['invoice']
-
+   
+    def get_queryset(self):
+        return Payment.objects.filter(user=self.request.user)  
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+    
+    def perform_update(self, serializer):
+        serializer.save(user=self.request.user)    
 
 class BusinessProfileViewSet(viewsets.ModelViewSet):
     serializer_class = BusinessProfileSerializer
@@ -154,102 +281,3 @@ class BusinessProfileViewSet(viewsets.ModelViewSet):
 
 # #<---------------------------------------------------------------->>
 
-# from rest_framework import viewsets
-# from rest_framework.permissions import IsAuthenticated
-# from rest_framework.decorators import action
-# from rest_framework.response import Response
-# from django.shortcuts import get_object_or_404
-# from django.http import HttpResponse
-# from rest_framework import generics
-
-# from .models import *
-# from .serializers import *
-# from .utils import render_to_pdf  # Make sure you have this utility function
-
-# from django_filters.rest_framework import DjangoFilterBackend
-# from rest_framework.filters import SearchFilter
-
-
-# class ClientViewSet(viewsets.ModelViewSet):
-#     serializer_class = ClientSerializer
-#     permission_classes = [IsAuthenticated]
-#     filter_backends = [DjangoFilterBackend, SearchFilter]
-#     filterset_fields = ['name', 'address', 'email']
-#     search_fields = ['name', 'address']
-
-#     def get_queryset(self):
-#         return Client.objects.filter(user=self.request.user)
-
-#     def perform_create(self, serializer):
-#         serializer.save(user=self.request.user)
-
-
-# class InvoiceViewSet(viewsets.ModelViewSet):
-#     serializer_class = InvoiceSerializer
-#     permission_classes = [IsAuthenticated]
-#     filter_backends = [DjangoFilterBackend, SearchFilter]
-#     filterset_fields = ['invoice_number']
-#     search_fields = ['invoice_number']
-
-#     def get_queryset(self):
-#         return Invoice.objects.filter(user=self.request.user)
-
-#     def get_serializer_context(self):
-#         context = super().get_serializer_context()
-#         context.update({"request": self.request})
-#         return context
-
-#     def perform_create(self, serializer):
-#         serializer.save(user=self.request.user)
-
-#     # download_pdf method as you already have
-
-
-#     @action(detail=True, methods=['get'], url_path='download-pdf')
-#     def download_pdf(self, request, pk=None):
-#         invoice = get_object_or_404(Invoice, pk=pk, user=request.user)
-#         pdf = render_to_pdf('invoice_pdf.html', {'invoice': invoice})
-#         if pdf:
-#             filename = f"invoice_{invoice.invoice_number}.pdf"
-#             response = HttpResponse(pdf.content, content_type='application/pdf')
-#             response['Content-Disposition'] = f'attachment; filename="{filename}"'
-#             return response
-#         return Response({'error': 'PDF generation failed'}, status=500)
-
-
-# class InvoiceItemViewSet(viewsets.ModelViewSet):
-#     serializer_class = InvoiceItemSerializer
-#     queryset = InvoiceItem.objects.all()
-#     permission_classes = [IsAuthenticated]
-#     filter_backends = [DjangoFilterBackend, SearchFilter]
-#     filterset_fields = ['invoice']
-#     search_fields = ['description']
-
-#     def get_queryset(self):
-#         invoice_id = self.kwargs['invoice_id']
-#         return InvoiceItem.objects.filter(invoice_id=invoice_id)
-
-
-# class PaymentViewSet(viewsets.ModelViewSet):
-#     serializer_class = PaymentSerializer
-#     queryset = Payment.objects.all()
-#     filter_backends = [DjangoFilterBackend]
-#     filterset_fields = ['invoice']
-#     permission_classes = [IsAuthenticated]
-
-#     def perform_create(self, serializer):
-#         serializer.save()
-
-
-# class BusinessProfileViewSet(viewsets.ModelViewSet):
-#     serializer_class = BusinessProfileSerializer
-#     permission_classes = [IsAuthenticated]
-
-#     def get_queryset(self):
-#         return BusinessProfile.objects.filter(user=self.request.user)
-
-#     def perform_create(self, serializer):
-#         serializer.save(user=self.request.user)
-        
-#     def perform_update(self, serializer):
-#         serializer.save(user=self.request.user)
