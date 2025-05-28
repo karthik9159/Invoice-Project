@@ -1,26 +1,4 @@
 
-# from django.db.models.signals import post_save, post_delete
-# from django.dispatch import receiver
-# from decimal import Decimal
-# from .models import InvoiceItem
-
-# @receiver([post_save, post_delete], sender=InvoiceItem)
-# def update_invoice_totals(sender, instance, **kwargs):
-#     invoice = instance.invoice
-#     if not invoice:
-#         return
-
-#     subtotal = sum(item.amount for item in invoice.items.all())
-#     tax_rate = Decimal('0.18')  # ✅ safely define tax rate as Decimal
-#     tax = subtotal * tax_rate
-
-#     invoice.subtotal = subtotal
-#     invoice.total = subtotal + tax
-#     invoice.save()
-
-
-# # <-------------------------------------------------------------------------->>>>
-
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from decimal import Decimal

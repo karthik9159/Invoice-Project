@@ -22,43 +22,7 @@ class PaymentSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['user']
 
-# class InvoiceSerializer(serializers.ModelSerializer):
-#     amount_paid = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-#     balance = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-#     payment_status = serializers.CharField(read_only=True)  
-    
-#     items = InvoiceItemSerializer(many=True)
-     
-#     class Meta:
-#         model = Invoice
-#         fields = '__all__'
-#         read_only_fields = ['user', 'amount_paid', 'balance']
-        
-    
-#     def create(self, validated_data):
-#         items_data = validated_data.pop('items')
-#         user = self.context['request'].user
-#         invoice = Invoice.objects.create(user=user, **validated_data)
 
-#         for item_data in items_data:
-#             InvoiceItem.objects.create(invoice=invoice, **item_data)
-
-#         return invoice
-
-#     def update(self, instance, validated_data):
-#         items_data = validated_data.pop('items', None)
-#         # Update Invoice main fields
-#         for attr, value in validated_data.items():
-#             setattr(instance, attr, value)
-#         instance.save()
-
-#         if items_data is not None:
-
-#             instance.items.all().delete()
-#             for item_data in items_data:
-#                 InvoiceItem.objects.create(invoice=instance, **item_data)
-
-#         return instance 
 
 class InvoiceSerializer(serializers.ModelSerializer):
     amount_paid = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)

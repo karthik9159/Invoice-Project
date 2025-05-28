@@ -150,5 +150,5 @@ class BusinessProfileViewSet(viewsets.ModelViewSet):
         else:
             return Response(serializer.errors, status=400)
 
-# #<---------------------------------------------------------------->>
+
 
