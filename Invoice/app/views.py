@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from .models import *
 from .serializers import *
-# from .utils import render_to_pdf  # Make sure you have this utility function
+# from .utils import render_to_pdf 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.exceptions import PermissionDenied
@@ -71,137 +71,8 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             'outstanding_amount': sum(invoice.balance for invoice in queryset),
         }
         return Response(stats)
-
-#####---------------------------------------------------------######
-
-
-# from rest_framework import viewsets, status
-# from rest_framework.permissions import IsAuthenticated
-# from rest_framework.decorators import action
-# from rest_framework.response import Response
-# from django.shortcuts import get_object_or_404
-# from django_filters.rest_framework import DjangoFilterBackend
-# from rest_framework.filters import SearchFilter, OrderingFilter
-# from rest_framework.permissions import IsAuthenticated
-# from rest_framework.exceptions import PermissionDenied
-# from rest_framework import permissions
-
-# from .models import *
-# from .serializers import *
-
-
-# class ClientViewSet(viewsets.ModelViewSet):
-#     serializer_class = ClientSerializer
-#     permission_classes = [IsAuthenticated]
-#     filter_backends = [DjangoFilterBackend, SearchFilter]
-#     filterset_fields = ['name', 'address', 'email']
-#     search_fields = ['name', 'address']
-
-#     def get_queryset(self):
-#         return Client.objects.filter(user=self.request.user, is_deleted=False)
-
-#     def perform_create(self, serializer):
-#         serializer.save(user=self.request.user)
-
-#     @action(detail=False, methods=['get'])
-#     def deleted(self, request):
-#         """View soft-deleted clients"""
-#         queryset = Client.all_objects.filter(user=request.user, is_deleted=True)
-#         serializer = self.get_serializer(queryset, many=True)
-#         return Response(serializer.data)
-
-#     @action(detail=True, methods=['post'])
-#     def restore(self, request, pk=None):
-#         """Restore a soft-deleted client"""
-#         client = get_object_or_404(Client.all_objects, pk=pk, user=request.user, is_deleted=True)
-#         client.is_deleted = False
-#         client.save()
-#         return Response({'status': 'restored'})
-
-#     @action(detail=True, methods=['delete'])
-#     def hard_delete(self, request, pk=None):
-#         """Permanently delete a client"""
-#         client = get_object_or_404(Client.all_objects, pk=pk, user=request.user)
-#         client.delete()
-#         return Response({'status': 'hard_deleted'}, status=status.HTTP_204_NO_CONTENT)
-
-#     def destroy(self, request, *args, **kwargs):
-#         """Soft delete instead of actual deletion"""
-#         instance = self.get_object()
-#         instance.is_deleted = True
-#         instance.save()
-#         return Response({'status': 'soft_deleted'}, status=status.HTTP_204_NO_CONTENT)
-
-
-# class InvoiceViewSet(viewsets.ModelViewSet):
-#     serializer_class = InvoiceSerializer
-#     permission_classes = [IsAuthenticated]
-#     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-#     filterset_fields = {
-#         'invoice_number': ['exact', 'icontains'],
-#         'issue_date': ['gte', 'lte', 'exact'],
-#         'payment_status': ['exact'],
-#         'client': ['exact'],
-#     }
-#     search_fields = ['invoice_number', 'client__name', 'notes']
-#     ordering_fields = ['issue_date', 'due_date', 'total']
-#     ordering = ['-issue_date']
-
-#     def get_queryset(self):
-#         queryset = Invoice.objects.filter(user=self.request.user, is_deleted=False)
-#         queryset = queryset.select_related('client').prefetch_related('items')
-
-#         status_filter = self.request.query_params.get('status', None)
-#         if status_filter in ['paid', 'partial', 'unpaid']:
-#             queryset = queryset.filter(payment_status=status_filter)
-
-#         return queryset
-
-#     def perform_create(self, serializer):
-#         serializer.save(user=self.request.user)
-
-#     def destroy(self, request, *args, **kwargs):
-#         """Soft delete invoice"""
-#         instance = self.get_object()
-#         instance.is_deleted = True
-#         instance.save()
-#         return Response({'status': 'soft_deleted'}, status=status.HTTP_204_NO_CONTENT)
-
-#     @action(detail=False, methods=['get'])
-#     def deleted(self, request):
-#         """View deleted invoices"""
-#         queryset = Invoice.all_objects.filter(user=request.user, is_deleted=True)
-#         serializer = self.get_serializer(queryset, many=True)
-#         return Response(serializer.data)
-
-#     @action(detail=True, methods=['post'])
-#     def restore(self, request, pk=None):
-#         """Restore a soft-deleted invoice"""
-#         invoice = get_object_or_404(Invoice.all_objects, pk=pk, user=request.user, is_deleted=True)
-#         invoice.is_deleted = False
-#         invoice.save()
-#         return Response({'status': 'restored'})
-
-#     @action(detail=True, methods=['delete'])
-#     def hard_delete(self, request, pk=None):
-#         """Permanently delete invoice"""
-#         invoice = get_object_or_404(Invoice.all_objects, pk=pk, user=request.user)
-#         invoice.delete()
-#         return Response({'status': 'hard_deleted'}, status=status.HTTP_204_NO_CONTENT)
-
-#     @action(detail=False, methods=['get'])
-#     def summary(self, request):
-#         queryset = self.get_queryset()
-#         stats = {
-#             'total_invoices': queryset.count(),
-#             'total_amount': sum(invoice.total for invoice in queryset),
-#             'paid_amount': sum(invoice.amount_paid for invoice in queryset),
-#             'outstanding_amount': sum(invoice.balance for invoice in queryset),
-#         }
-#         return Response(stats)
-
-
-######---------------------------------------------------------#######
+    
+    
 
 class InvoiceItemViewSet(viewsets.ModelViewSet):
     serializer_class = InvoiceItemSerializer

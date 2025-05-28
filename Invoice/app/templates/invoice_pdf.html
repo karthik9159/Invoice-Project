@@ -1,4 +1,4 @@
-{% comment %} <!DOCTYPE html>
+ <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -17,6 +17,8 @@
   <p><strong>Issue Date:</strong> {{ invoice.issue_date }}</p>
   <p><strong>Due Date:</strong> {{ invoice.due_date }}</p>
   <p><strong>Status:</strong> {{ invoice.payment_status|capfirst }}</p>
+  <button id="printBtn">Open and Print</button>
+  
 
   <h2>Items</h2>
   <table>
@@ -49,5 +51,27 @@
   {% if invoice.notes %}
     <p><strong>Notes:</strong> {{ invoice.notes }}</p>
   {% endif %}
+
+  <script>
+    document.getElementById('printBtn').addEventListener('click', () => {
+      const newWindow = window.open(' ', '_blank');
+
+      // Make sure newWindow exists (popup blockers may block it)
+      if (newWindow) {
+        newWindow.onload = () => {
+          newWindow.print();
+        };
+      } else {
+        alert('Popup blocked! Please allow popups for this site.');
+      }
+    });
+  </script>
 </body>
 </html> {% endcomment %}
+
+
+
+
+
+
+

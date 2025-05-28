@@ -6,6 +6,8 @@ import Sidebar from "../components/Sidebar";
 
 
 
+
+
 export default function Clients() {
   const [clients, setClients] = useState([]);
   const [form, setForm] = useState({ name: "", email: "", phone_number: "" ,company_name: "", address: ""});
@@ -13,6 +15,7 @@ export default function Clients() {
   const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  
 
 
   const fetchClients = async () => {
@@ -273,7 +276,7 @@ export default function Clients() {
                     ))}
                   </tbody>
                 </table>
-                
+               
                 {clients.length === 0 && !isLoading && (
                   <div className="text-center py-12">
                     <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -291,6 +294,43 @@ export default function Clients() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
