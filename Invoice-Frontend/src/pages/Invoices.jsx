@@ -2,9 +2,7 @@
 
 
 import { useEffect, useState } from "react";
-import { Plus, FileText, Calendar, User, Edit, Trash2, Save, X, Hash, Receipt, Clock, Building, CheckCircle, AlertCircle, XCircle, CreditCard, Printer, ChevronLeft, ChevronRight, ChevronsLeft,  Search } from "lucide-react";
-
-
+import { Plus, FileText, Calendar, User, Edit, Trash2, Save, X, Hash, Receipt, Clock, Building, CheckCircle, AlertCircle, XCircle, CreditCard, Printer, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search } from "lucide-react";
 import axios from "../api/axios";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
@@ -36,7 +34,7 @@ export default function Invoices() {
     payment_method: "bank_transfer",
     notes: ""
   });
-  
+
   // Pagination state
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -44,7 +42,7 @@ export default function Invoices() {
     totalCount: 0,
     totalPages: 1
   });
-  
+
   // Client search state
   const [clientSearch, setClientSearch] = useState("");
   const [filteredClients, setFilteredClients] = useState([]);
@@ -63,8 +61,6 @@ export default function Invoices() {
     setIsLoading(true);
     try {
       const res = await axios.get(`api/invoices/?page=${page}&page_size=${pagination.pageSize}`);
-      
-      // Handle paginated response (DRF format)
       const data = res.data;
       let invoiceData = [];
       let paginationData = {
@@ -75,7 +71,6 @@ export default function Invoices() {
       };
 
       if (data.results) {
-        // Standard DRF pagination
         invoiceData = data.results;
         paginationData = {
           currentPage: page,
@@ -84,10 +79,8 @@ export default function Invoices() {
           totalPages: Math.ceil(data.count / pagination.pageSize)
         };
       } else if (Array.isArray(data)) {
-        // Non-paginated response
         invoiceData = data;
       } else if (data.data) {
-        // Alternative pagination format
         invoiceData = data.data;
         paginationData = {
           currentPage: data.current_page || page,
@@ -99,7 +92,7 @@ export default function Invoices() {
 
       setInvoices(invoiceData);
       setPagination(paginationData);
-      
+
       // Auto-adjust current page if we're on an empty page
       if (invoiceData.length === 0 && paginationData.currentPage > 1) {
         fetchInvoices(paginationData.currentPage - 1);
@@ -166,6 +159,13 @@ export default function Invoices() {
       });
     } finally {
       setIsClientLoading(false);
+    }
+  };
+
+  // Pagination for client dropdown
+  const goToClientPage = (page) => {
+    if (page >= 1 && page <= clientPagination.totalPages) {
+      fetchClients(clientSearch, page);
     }
   };
 
@@ -243,7 +243,7 @@ export default function Invoices() {
     const total = subtotal.toFixed(2);
     const paidAmount = parseFloat(form.paid_amount) || 0;
     const balance = (subtotal - paidAmount).toFixed(2);
-    
+
     let paymentStatus = form.payment_status;
     if (paidAmount === 0) {
       paymentStatus = "pending";
@@ -252,7 +252,7 @@ export default function Invoices() {
     } else {
       paymentStatus = "partial";
     }
-    
+
     setForm(prev => ({
       ...prev,
       subtotal: subtotal.toFixed(2),
@@ -280,14 +280,14 @@ export default function Invoices() {
           amount: parseFloat(item.amount) || 0
         }))
       };
-      
+
       let response;
       if (editingId) {
         response = await axios.put(`api/invoices/${editingId}/`, payload);
       } else {
         response = await axios.post("api/invoices/", payload);
       }
-      
+
       if (response.data && response.data.invoice_number) {
         setForm(prev => ({
           ...prev,
@@ -328,7 +328,7 @@ export default function Invoices() {
       const res = await axios.get(`api/invoices/${id}/`);
       const invoiceData = res.data;
       const client = clients.find(c => c.id === invoiceData.client_id || c.id === invoiceData.client);
-      
+
       setForm({
         client: invoiceData.client_id || invoiceData.client || "",
         invoice_number: invoiceData.invoice_number || "",
@@ -338,13 +338,13 @@ export default function Invoices() {
         total: invoiceData.total || "",
         notes: invoiceData.notes || "",
         payment_status: invoiceData.payment_status || "pending",
-        paid_amount: invoiceData.paid_amount || "0.00",
+        paid_amount: invoiceData.paid_amount ?? invoiceData.amount_paid ?? "0.00",
         balance: invoiceData.balance || "",
-        line_items: invoiceData.line_items_data || invoiceData.line_items || 
-                   [{ description: "", quantity: "", rate: "", amount: "" }]
+        line_items: invoiceData.line_items_data || invoiceData.line_items ||
+          [{ description: "", quantity: "", rate: "", amount: "" }]
       });
-      
-      setClientSearch(client ? client.name : "");
+
+      setClientSearch(client ? client.name : invoiceData.client_name || "");
       setEditingId(id);
       setShowForm(true);
     } catch (error) {
@@ -356,8 +356,6 @@ export default function Invoices() {
     if (window.confirm("Are you sure you want to delete this invoice?")) {
       try {
         await axios.delete(`api/invoices/${id}/`);
-        
-        // Check if we're on the last page with only one item
         if (invoices.length === 1 && pagination.currentPage > 1) {
           await fetchInvoices(pagination.currentPage - 1);
         } else {
@@ -400,10 +398,10 @@ export default function Invoices() {
 
   const handlePrintInvoice = (invoice) => {
     const client = clients.find(c => c.id === invoice.client_id || c.id === invoice.client);
-    const clientName = client ? client.name || client.company_name || 'Unknown Client' : 'Unknown Client';
-    const clientAddress = client ? (client.address || '') : '';
-    const clientEmail = client ? (client.email || '') : '';
-    const clientPhone = client ? (client.phone || '') : '';
+    const clientName = client?.name || invoice.client_name || 'Unknown Client';
+    const clientAddress = client?.address || '';
+    const clientEmail = client?.email || '';
+    const clientPhone = client?.phone || '';
 
     const printContent = `
   <!DOCTYPE html>
@@ -509,7 +507,7 @@ export default function Invoices() {
         </tr>
         <tr>
           <td><strong>Amount Paid:</strong></td>
-          <td style="text-align:right">₹${parseFloat(invoice.paid_amount || 0).toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+          <td style="text-align:right">₹${parseFloat(invoice.paid_amount ?? invoice.amount_paid ?? 0).toLocaleString(undefined, {minimumFractionDigits:2})}</td>
         </tr>
         <tr class="balance-row">
           <td><strong>Balance Due:</strong></td>
@@ -537,7 +535,7 @@ export default function Invoices() {
     if (printWindow) {
       printWindow.document.write(printContent);
       printWindow.document.close();
-      
+
       printWindow.onload = () => {
         setTimeout(() => {
           printWindow.print();
@@ -571,12 +569,12 @@ export default function Invoices() {
         color: "bg-red-100 text-red-800"
       }
     };
-    
+
     const numericBalance = parseFloat(balance) || 0;
     const effectiveStatus = numericBalance <= 0 ? 'paid' : (status || 'pending');
-    
+
     const badge = statusMap[effectiveStatus] || statusMap.pending;
-    
+
     return (
       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${badge.color}`}>
         {badge.icon}
@@ -595,7 +593,7 @@ export default function Invoices() {
   const renderPageNumbers = () => {
     const pages = [];
     const { currentPage, totalPages } = pagination;
-    
+
     // Always show first page
     pages.push(
       <button
@@ -606,12 +604,12 @@ export default function Invoices() {
         1
       </button>
     );
-    
+
     // Show ellipsis if needed after first page
     if (currentPage > 3) {
       pages.push(<span key="ellipsis-start" className="px-2">...</span>);
     }
-    
+
     // Show pages around current page
     for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
       pages.push(
@@ -624,12 +622,12 @@ export default function Invoices() {
         </button>
       );
     }
-    
+
     // Show ellipsis if needed before last page
     if (currentPage < totalPages - 2) {
       pages.push(<span key="ellipsis-end" className="px-2">...</span>);
     }
-    
+
     // Always show last page if different from first
     if (totalPages > 1) {
       pages.push(
@@ -642,7 +640,7 @@ export default function Invoices() {
         </button>
       );
     }
-    
+
     return pages;
   };
 
@@ -664,7 +662,6 @@ export default function Invoices() {
                 <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl">
                   <Receipt className="w-8 h-8 text-white" />
                 </div>
-        
                 <div>
                   <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                     Invoice Management
@@ -672,7 +669,6 @@ export default function Invoices() {
                   <p className="text-gray-600 mt-1">Create and manage professional invoices</p>
                 </div>
               </div>
-           
               <button
                 onClick={handleNewInvoice}
                 className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
@@ -685,7 +681,7 @@ export default function Invoices() {
               </button>
             </div>
           </div>
-       
+
           {/* Invoice Form */}
           {showForm && (
             <div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
@@ -993,14 +989,8 @@ export default function Invoices() {
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">Recent Invoices</h2>
-                <div className="relative w-64">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    
-                  </div>
-                  
-                </div>
+                <div className="relative w-64"></div>
               </div>
-
               {isLoading ? (
                 <div className="flex justify-center items-center h-64">
                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -1026,29 +1016,20 @@ export default function Invoices() {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Invoice 
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Client
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Date
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Amount
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Status
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Actions
-                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {invoices.map((invoice) => {
                           const client = clients.find(c => c.id === invoice.client_id || c.id === invoice.client);
+                          const clientName = client?.name || invoice.client_name || 'Unknown Client';
+                          const clientEmail = client?.email || '';
+                          const paidAmount = invoice.paid_amount ?? invoice.amount_paid ?? "0.00";
                           return (
                             <tr key={invoice.id} className="hover:bg-gray-50">
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
@@ -1061,10 +1042,10 @@ export default function Invoices() {
                                   </div>
                                   <div className="ml-4">
                                     <div className="text-sm font-medium text-gray-900">
-                                      {client?.name || 'Unknown Client'}
+                                      {clientName}
                                     </div>
                                     <div className="text-sm text-gray-500">
-                                      {client?.email || ''}
+                                      {clientEmail}
                                     </div>
                                   </div>
                                 </div>
@@ -1120,22 +1101,24 @@ export default function Invoices() {
                   {/* Pagination */}
                   {pagination.totalPages > 1 && (
                     <div className="flex items-center justify-between mt-6 px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6 rounded-b-xl">
+                      {/* Mobile view */}
                       <div className="flex-1 flex justify-between sm:hidden">
                         <button
                           onClick={() => goToPage(pagination.currentPage - 1)}
                           disabled={pagination.currentPage === 1}
-                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                         >
                           Previous
                         </button>
                         <button
                           onClick={() => goToPage(pagination.currentPage + 1)}
                           disabled={pagination.currentPage === pagination.totalPages}
-                          className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                          className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                         >
                           Next
                         </button>
                       </div>
+                      {/* Desktop view */}
                       <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                         <div>
                           <p className="text-sm text-gray-700">
@@ -1151,7 +1134,7 @@ export default function Invoices() {
                             <button
                               onClick={() => goToPage(1)}
                               disabled={pagination.currentPage === 1}
-                              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                             >
                               <span className="sr-only">First</span>
                               <ChevronsLeft className="h-5 w-5" />
@@ -1159,7 +1142,7 @@ export default function Invoices() {
                             <button
                               onClick={() => goToPage(pagination.currentPage - 1)}
                               disabled={pagination.currentPage === 1}
-                              className="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                              className="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                             >
                               <span className="sr-only">Previous</span>
                               <ChevronLeft className="h-5 w-5" />
@@ -1170,7 +1153,7 @@ export default function Invoices() {
                             <button
                               onClick={() => goToPage(pagination.currentPage + 1)}
                               disabled={pagination.currentPage === pagination.totalPages}
-                              className="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                              className="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                             >
                               <span className="sr-only">Next</span>
                               <ChevronRight className="h-5 w-5" />
@@ -1178,7 +1161,7 @@ export default function Invoices() {
                             <button
                               onClick={() => goToPage(pagination.totalPages)}
                               disabled={pagination.currentPage === pagination.totalPages}
-                              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                             >
                               <span className="sr-only">Last</span>
                               <ChevronsRight className="h-5 w-5" />
