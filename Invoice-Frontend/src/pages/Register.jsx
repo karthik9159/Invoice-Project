@@ -205,7 +205,7 @@ export default function Register() {
             {/* Register Button */}
             <button
               type="submit"
-              disabled={loading || !username || !password || !password2 || !passwordsMatch}
+              disabled={loading || !username || !password || !password2 || !passwordsMatch || passwordStrength.strength < 2}
               className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-4 rounded-lg font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-lg flex items-center justify-center gap-2"
             >
               {loading ? (

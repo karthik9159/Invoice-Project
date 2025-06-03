@@ -1,5 +1,6 @@
 
 from rest_framework import viewsets
+from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -28,6 +29,16 @@ class ClientViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
+# class ClientDropdownView(generics.ListAPIView):
+#     serializer_class = ClientDropdownSerializer
+#     permission_classes = [IsAuthenticated]
+#     filter_backends = [SearchFilter]
+#     search_fields = ['name']
+
+#     def get_queryset(self):
+#         return Client.objects.filter(user=self.request.user).order_by('name')
+
+
 
 class InvoiceViewSet(viewsets.ModelViewSet):
     serializer_class = InvoiceSerializer
@@ -39,18 +50,14 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         'payment_status': ['exact'],
         'client': ['exact'],
     }
-    search_fields = ['invoice_number', 'client__name', 'notes']
+    search_fields = ['invoice_number', 'client_name', 'notes']
     ordering_fields = ['issue_date', 'due_date', 'total']
     ordering = ['-issue_date']  
 
 
     def get_queryset(self):
         queryset = Invoice.objects.filter(user=self.request.user)
-        
-        # Prefetch related items to optimize database queries
         queryset = queryset.select_related('client').prefetch_related('items')
-        
-        # Additional filtering example (e.g., for dashboard stats)
         status_filter = self.request.query_params.get('status', None)
         if status_filter in ['paid', 'partial', 'unpaid']:
             queryset = queryset.filter(payment_status=status_filter)
@@ -111,6 +118,7 @@ class InvoiceItemViewSet(viewsets.ModelViewSet):
 
 class PaymentViewSet(viewsets.ModelViewSet):
     serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
     queryset = Payment.objects.all()
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['invoice']

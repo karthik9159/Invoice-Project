@@ -7,6 +7,11 @@ class ClientSerializer(serializers.ModelSerializer):
         model = Client
         fields = '__all__'
         read_only_fields = ['user']
+        
+class ClientDropdownSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Client
+        fields = ['id', 'name']        
 
 class InvoiceItemSerializer(serializers.ModelSerializer):
     class Meta:
@@ -14,13 +19,33 @@ class InvoiceItemSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['amount', 'invoice']
 
+# class PaymentSerializer(serializers.ModelSerializer):
+#     invoice_number = serializers.CharField(source='invoice.invoice_number', read_only=True)
+#     client_name = serializers.CharField(source='invoice.client.name', read_only=True)
+#     class Meta:
+#         model = Payment
+#         fields = ['id', 'invoice', 'invoice_number', 'client_name', 'amount_paid', 'created_at']
+#         read_only_fields = ['user']
+
+
+
 class PaymentSerializer(serializers.ModelSerializer):
-    invoice_number = serializers.CharField(source='invoice.invoice_number', read_only=True)
-    client_name = serializers.CharField(source='invoice.client.name', read_only=True)
+    invoice_number = serializers.SerializerMethodField()
+    client_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Payment
-        fields = '__all__'
-        read_only_fields = ['user']
+        # fields = '__all__'
+        # read_only_fields = ['user']
+        fields = ['id', 'user', 'invoice', 'amount_paid', 'payment_date', 'invoice_number', 'client_name']
+        read_only_fields = ['user', 'invoice_number', 'client_name']
+
+    def get_invoice_number(self, obj):
+        return obj.invoice.invoice_number if obj.invoice else None
+
+    def get_client_name(self, obj):
+        return obj.invoice.client.name if obj.invoice and obj.invoice.client else None
+
 
 
 

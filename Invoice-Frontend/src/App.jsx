@@ -26,10 +26,7 @@ function App() {
           path="/clients"
           element={<PrivateRoute><Clients /></PrivateRoute>}
         />
-        {/* <Route
-          path="/pdfview/"
-          element={<PrivateRoute><Pdfview /></PrivateRoute>}
-        /> */}
+        
         <Route
           path="/invoices"
           element={<PrivateRoute><Invoices /></PrivateRoute>}

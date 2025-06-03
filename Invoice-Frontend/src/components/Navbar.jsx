@@ -2,6 +2,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 
+
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -12,79 +13,78 @@ export default function Navbar() {
     navigate("/login");
   };
 
-  // Get page title and icon based on current route
-  const getPageInfo = () => {
-    const path = location.pathname;
-    switch (path) {
-      case "/clients":
-        return { 
-          title: "Client Portfolio", 
-          subtitle: "Manage your client relationships",
-          icon: "👥"
-        };
-      case "/invoices":
-        return { 
-          title: "Invoice Studio", 
-          subtitle: "Create & track invoices",
-          icon: "📄"
-        };   
-      case "/payments":
-        return { 
-          title: "Payment Center", 
-          subtitle: "Monitor payment status",
-          icon: "💰"
-        };
-      case "/profile":
-        return { 
-          title: "Professional Profile", 
-          subtitle: "Your freelance identity",
-          icon: "⚡"
-        };
-      default:
-        return { 
-          title: "Freelance Hub", 
-          subtitle: "Your business command center",
-          icon: "🚀"
-        };
-    }
-  };
+// Get page title and icon based on current route
+const getPageInfo = () => {
+  const path = location.pathname;
+  switch (path) {
+    case "/clients":
+      return { 
+        title: "Client Portfolio", 
+        subtitle: "Manage your client relationships",
+        icon: "👥"
+      };
+    case "/invoices":
+      return { 
+        title: "Invoice Studio", 
+        subtitle: "Create & track invoices",
+        icon: "📄"
+      };   
+    case "/payments":
+      return { 
+        title: "Payment Center", 
+        subtitle: "Monitor payment status",
+        icon: "💰"
+      };
+    case "/profile":
+      return { 
+        title: "Professional Profile", 
+        subtitle: "Your freelance identity",
+        icon: "⚡"
+      };
+    default:
+      return { 
+        title: "Freelance Hub", 
+        subtitle: "Your business command center",
+        icon: "🚀"
+      };
+  }
+};
 
-  // Get current time and date
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    const time = now.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
-    const date = now.toLocaleDateString([], {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric'
-    });
-    return { time, date };
-  };
+// Get current time and date
+const getCurrentDateTime = () => {
+  const now = new Date();
+  const time = now.toLocaleTimeString([], { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true 
+  });
+  const date = now.toLocaleDateString([], {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric'
+  });
+  return { time, date };
+};
 
-  const pageInfo = getPageInfo();
-  const { time, date } = getCurrentDateTime();
+const pageInfo = getPageInfo();
+const { time, date } = getCurrentDateTime();
 
-  return (
-    <nav className="bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 shadow-2xl border-b border-purple-500/20 sticky top-0 z-40 backdrop-blur-lg">
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between">
-          {/* Left Section - Enhanced Page Info */}
-          <div className="flex items-center space-x-6">
-            <div className="hidden md:flex items-center space-x-4">
-              {/* Page Icon */}
-              <div className="text-3xl bg-gradient-to-br from-purple-400 to-pink-400 p-3 rounded-xl shadow-lg">
-                {pageInfo.icon}
-              </div>
-              
-              {/* Page Details */}
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent tracking-tight">
-                  {pageInfo.title}
-                </h1>
+return (
+  <nav className="bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 shadow-2xl border-b border-purple-500/20 sticky top-0 z-40 backdrop-blur-lg">
+    <div className="px-6 py-4">
+      <div className="flex items-center justify-between">
+        {/* Left Section - Enhanced Page Info */}
+        <div className="flex items-center space-x-6">
+          <div className="hidden md:flex items-center space-x-4">
+            {/* Page Icon */}
+            <div className="text-3xl bg-gradient-to-br from-purple-400 to-pink-400 p-3 rounded-xl shadow-lg">
+              {pageInfo.icon}
+            </div>
+            {/* Page Details */}
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent tracking-tight">
+                {pageInfo.title}
+              </h1>
                 <div className="flex items-center space-x-3 mt-1">
                   <p className="text-sm text-purple-200/80">
                     {pageInfo.subtitle}

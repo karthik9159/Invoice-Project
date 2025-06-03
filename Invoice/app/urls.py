@@ -13,6 +13,7 @@ router.register(r'business-profiles', BusinessProfileViewSet, basename='business
 urlpatterns = [
 
     path('', include(router.urls)),
+    # path('client-dropdown/', ClientDropdownView.as_view(), name='client-dropdown'),
     
 ]
 
