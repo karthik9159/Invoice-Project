@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 
 export default function Sidebar() {
   const location = useLocation();
-  const activeItem = location.pathname; // Use current route as active item
+  const activeItem = location.pathname; 
   
   const menuItems = [
     { path: "/clients", label: "Clients", icon: "👥", color: "from-emerald-500 to-teal-600" },
@@ -29,7 +29,7 @@ export default function Sidebar() {
           </div>
           <div>
             <h2 className="text-xl font-bold text-white tracking-tight">
-              FreelanceHub
+              Freelance Invoice 
             </h2>
             <p className="text-xs text-gray-400 font-medium">Invoice Manager</p>
           </div>

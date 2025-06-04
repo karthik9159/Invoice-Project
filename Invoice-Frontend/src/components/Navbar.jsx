@@ -19,25 +19,25 @@ const getPageInfo = () => {
   switch (path) {
     case "/clients":
       return { 
-        title: "Client Portfolio", 
-        subtitle: "Manage your client relationships",
+        title: "Client Page", 
+        subtitle: "Manage client details",
         icon: "👥"
       };
     case "/invoices":
       return { 
-        title: "Invoice Studio", 
+        title: "Invoice Page", 
         subtitle: "Create & track invoices",
         icon: "📄"
       };   
     case "/payments":
       return { 
-        title: "Payment Center", 
+        title: "Payment Page", 
         subtitle: "Monitor payment status",
         icon: "💰"
       };
     case "/profile":
       return { 
-        title: "Professional Profile", 
+        title: " Profile Page", 
         subtitle: "Your freelance identity",
         icon: "⚡"
       };
@@ -118,13 +118,13 @@ return (
             </div>
 
             {/* Smart Notifications */}
-            <button className="relative p-3 text-purple-200 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300 group">
+            {/* <button className="relative p-3 text-purple-200 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300 group">
               <svg className="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-red-400 to-pink-500 rounded-full animate-bounce"></div>
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-400 rounded-full animate-ping"></div>
-            </button>
+            </button> */}
 
             {/* Professional Status */}
             <div className="hidden md:flex items-center space-x-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 px-4 py-2 rounded-xl border border-blue-500/30">
@@ -144,9 +144,8 @@ return (
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-slate-900"></div>
                 </div>
-                
-                <div className="hidden md:block text-left">
-                  <p className="text-sm font-semibold text-white">Freelancer</p>
+                <div className="hidden md:block">
+                  <p className="text-sm font-semibold text-white">Freelance</p>
                   <p className="text-xs text-purple-200">Professional Mode</p>
                 </div>
                 
@@ -171,8 +170,8 @@ return (
                         <span className="text-white font-bold">F</span>
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-white">Freelance Pro</p>
-                        <p className="text-xs text-purple-300">freelancer@example.com</p>
+                        <p className="text-sm font-semibold text-white">Email</p>
+                        <p className="text-xs text-purple-300">Jesh@gmail.com</p>
                       </div>
                     </div>
                   </div>
